@@ -13,13 +13,13 @@ A CLI tool that scans TypeScript/JSX files for Tailwind arbitrary color values, 
 ## Installation
 
 ```bash
-npm install -g tailwind-color-visualizer
+npm install -g babes
 ```
 
 Or use with npx (no installation required):
 
 ```bash
-npx tailwind-color-visualizer [directory]
+npx babes [directory]
 ```
 
 ## Usage
@@ -29,13 +29,13 @@ npx tailwind-color-visualizer [directory]
 Scan the current directory:
 
 ```bash
-tailwind-color-visualizer
+babes
 ```
 
 Or specify a directory:
 
 ```bash
-tailwind-color-visualizer ./src
+babes ./src
 ```
 
 ### Options
@@ -48,16 +48,16 @@ tailwind-color-visualizer ./src
 
 ```bash
 # Scan a specific directory
-tailwind-color-visualizer ./my-project/src
+babes ./my-project/src
 
 # Use a custom port
-tailwind-color-visualizer --port 8080
+babes --port 8080
 
 # Don't open browser automatically
-tailwind-color-visualizer --no-open
+babes --no-open
 
 # Adjust similarity threshold (lower = more strict)
-tailwind-color-visualizer --threshold 3
+babes --threshold 3
 ```
 
 ## Supported Color Formats
@@ -86,7 +86,7 @@ The tool launches a web server and opens your browser to display:
 
 - **Color Palette**: Grid view of all unique colors found
 - **Color Details**: Click any color to see where it's used
-- **CSS Variable Suggestions**: Recommendations for consolidating duplicate colors
+- **Filter by Utility Class**: Filter colors by bg, text, border, etc.
 - **Merge Suggestions**: Groups of similar colors that could be merged
 
 ## Development

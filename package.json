@@ -1,10 +1,10 @@
 {
-  "name": "tailwind-color-visualizer",
+  "name": "babes",
   "version": "1.0.0",
   "description": "Scan and visualize Tailwind arbitrary color values with CSS variable consolidation suggestions",
   "main": "dist/index.js",
   "bin": {
-    "tailwind-color-visualizer": "dist/index.js"
+    "babes": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -19,8 +19,16 @@
     "css-variables",
     "arbitrary-values"
   ],
-  "author": "",
+  "author": "hellosatyajit <hellosatyajit@users.noreply.github.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hellosatyajit/babes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hellosatyajit/babes/issues"
+  },
+  "homepage": "https://github.com/hellosatyajit/babes#readme",
   "engines": {
     "node": ">=16"
   },
