@@ -35,7 +35,7 @@ function findUiDirectory(): string {
 const program = new Command();
 
 program
-  .name('babes')
+  .name('colx')
   .description('Scan and visualize Tailwind arbitrary color values')
   .version('1.0.0')
   .argument('[directory]', 'Directory to scan (default: current directory)', process.cwd())

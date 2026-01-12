@@ -13,13 +13,13 @@ A CLI tool that scans TypeScript/JSX files for Tailwind arbitrary color values, 
 ## Installation
 
 ```bash
-npm install -g babes
+npm install -g colx
 ```
 
 Or use with npx (no installation required):
 
 ```bash
-npx babes [directory]
+npx colx [directory]
 ```
 
 ## Usage
@@ -29,13 +29,13 @@ npx babes [directory]
 Scan the current directory:
 
 ```bash
-babes
+colx
 ```
 
 Or specify a directory:
 
 ```bash
-babes ./src
+colx ./src
 ```
 
 ### Options
@@ -48,16 +48,16 @@ babes ./src
 
 ```bash
 # Scan a specific directory
-babes ./my-project/src
+colx ./my-project/src
 
 # Use a custom port
-babes --port 8080
+colx --port 8080
 
 # Don't open browser automatically
-babes --no-open
+colx --no-open
 
 # Adjust similarity threshold (lower = more strict)
-babes --threshold 3
+colx --threshold 3
 ```
 
 ## Supported Color Formats

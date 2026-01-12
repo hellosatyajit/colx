@@ -1,10 +1,10 @@
 {
-  "name": "babes",
+  "name": "colx",
   "version": "1.0.0",
   "description": "Scan and visualize Tailwind arbitrary color values with CSS variable consolidation suggestions",
   "main": "dist/index.js",
   "bin": {
-    "babes": "dist/index.js"
+    "colx": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
@@ -23,12 +23,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hellosatyajit/babes.git"
+    "url": "https://github.com/hellosatyajit/colx.git"
   },
   "bugs": {
-    "url": "https://github.com/hellosatyajit/babes/issues"
+    "url": "https://github.com/hellosatyajit/colx/issues"
   },
-  "homepage": "https://github.com/hellosatyajit/babes#readme",
+  "homepage": "https://github.com/hellosatyajit/colx#readme",
   "engines": {
     "node": ">=16"
   },
