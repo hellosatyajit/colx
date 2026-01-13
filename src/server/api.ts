@@ -35,6 +35,7 @@ export interface StatsResponse {
 let colorDataCache: ColorData[] = [];
 let suggestionsCache: SuggestionsResponse | null = null;
 let statsCache: StatsResponse | null = null;
+let watchModeEnabled: boolean = false;
 
 export function setColorData(
   occurrences: ColorOccurrence[],
@@ -98,6 +99,10 @@ export function setColorData(
   };
 }
 
+export function setWatchMode(enabled: boolean) {
+  watchModeEnabled = enabled;
+}
+
 export function setupApiRoutes(app: Express) {
   app.get('/api/colors', (_req: Request, res: Response) => {
     res.json(colorDataCache);
@@ -114,5 +119,9 @@ export function setupApiRoutes(app: Express) {
       filesScanned: 0,
       formats: {}
     });
+  });
+
+  app.get('/api/watch-mode', (_req: Request, res: Response) => {
+    res.json({ enabled: watchModeEnabled });
   });
 }

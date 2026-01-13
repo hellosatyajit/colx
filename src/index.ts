@@ -9,7 +9,8 @@ import { parseColors, ParsedColor } from './analyzer/color-parser';
 import { findSimilarColors, SimilarColorGroup } from './analyzer/similarity';
 import { consolidateToCSSVariables, CSSVariableSuggestion } from './analyzer/consolidator';
 import { startServer } from './server/server';
-import { setColorData } from './server/api';
+import { setColorData, setWatchMode } from './server/api';
+import { watchAndRescan } from './scanner/watcher';
 
 function findUiDirectory(): string {
   // Try multiple possible paths
@@ -42,15 +43,20 @@ program
   .option('-p, --port <number>', 'Server port', '6969')
   .option('--no-open', 'Do not open browser automatically')
   .option('-t, --threshold <number>', 'Color similarity threshold (Delta E)', '5')
-  .action(async (directory: string, options: { port: string; open: boolean; threshold: string }) => {
+  .option('-w, --watch', 'Watch for file changes and auto-rescan', false)
+  .action(async (directory: string, options: { port: string; open: boolean; threshold: string; watch?: boolean }) => {
     const targetDir = resolve(directory);
     const port = parseInt(options.port, 10);
     const threshold = parseFloat(options.threshold);
     const shouldOpen = options.open !== false;
+    const watchMode = options.watch === true;
 
     console.log('🔍 Scanning for Tailwind arbitrary color values...\n');
     console.log(`📁 Directory: ${targetDir}`);
     console.log(`🎨 Similarity threshold: ${threshold}`);
+    if (watchMode) {
+      console.log(`👀 Watch mode: ENABLED`);
+    }
     console.log('');
 
     try {
@@ -97,15 +103,27 @@ program
 
       // Phase 6: Setup API data
       setColorData(occurrences, parsedColors, similarGroups, cssVariables);
+      setWatchMode(watchMode);
 
       // Phase 7: Start server
       console.log('\n🚀 Starting web server...');
       const uiDir = findUiDirectory();
       await startServer(port, uiDir, shouldOpen);
 
+      // Phase 8: Start file watcher if watch mode is enabled
+      let watcher: any = null;
+      if (watchMode) {
+        console.log('\n👀 Watching for file changes...');
+        watcher = await watchAndRescan(targetDir, threshold);
+        console.log('   Watch mode active. Files will be rescanned automatically.\n');
+      }
+
       // Keep the process alive
       process.on('SIGINT', () => {
         console.log('\n\n👋 Shutting down...');
+        if (watcher) {
+          watcher.close();
+        }
         process.exit(0);
       });
     } catch (error) {

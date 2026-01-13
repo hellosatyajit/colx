@@ -1,14 +1,55 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
-function ColorCard({ color, onClick }) {
+function Toast({ message, show, onHide }) {
+  useEffect(() => {
+    if (show) {
+      const timer = setTimeout(() => {
+        onHide();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [show, onHide]);
+
+  if (!show) return null;
+
   return (
-    <div className="color-card" onClick={() => onClick(color)}>
+    <div className="toast">
+      <span className="toast-icon">✓</span>
+      <span className="toast-message">{message}</span>
+    </div>
+  );
+}
+
+function ColorCard({ color, onClick, onCopy }) {
+  const handleClick = (e) => {
+    // If clicking on the hex text, copy to clipboard
+    if (e.target.classList.contains('color-hex')) {
+      e.stopPropagation();
+      navigator.clipboard.writeText(color.hex).then(() => {
+        onCopy(color.hex);
+        // Show temporary feedback on the text
+        const originalText = e.target.textContent;
+        e.target.textContent = 'Copied!';
+        e.target.style.color = '#007bff';
+        setTimeout(() => {
+          e.target.textContent = originalText;
+          e.target.style.color = '';
+        }, 1000);
+      });
+    } else {
+      // Otherwise, show details
+      onClick(color);
+    }
+  };
+
+  return (
+    <div className="color-card" onClick={handleClick}>
       <div 
         className="color-swatch" 
         style={{ backgroundColor: color.hex }}
       />
       <div className="color-info">
-        <div className="color-hex">{color.hex}</div>
+        <div className="color-hex" title="Click to copy">{color.hex}</div>
         <div className="color-format">{color.format}</div>
       </div>
     </div>
@@ -53,11 +94,35 @@ function ColorDetails({ color, onClose }) {
   );
 }
 
-function Suggestions({ suggestions, stats }) {
+function Suggestions({ suggestions, stats, onCopy }) {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
-      alert('Copied to clipboard!');
+      onCopy(text);
     });
+  };
+
+  const copyColorToClipboard = (color, event) => {
+    event.stopPropagation();
+    navigator.clipboard.writeText(color).then(() => {
+      onCopy(color);
+      // Show temporary feedback
+      const originalTitle = event.target.title;
+      event.target.title = 'Copied!';
+      event.target.style.transform = 'scale(1.15)';
+      event.target.style.boxShadow = '0 4px 12px rgba(0,123,255,0.4)';
+      setTimeout(() => {
+        event.target.title = originalTitle;
+        event.target.style.transform = '';
+        event.target.style.boxShadow = '';
+      }, 1000);
+    });
+  };
+
+  const openInCoolors = (colors) => {
+    // Convert hex colors to coolors.co format (remove # and join with dashes)
+    const colorCodes = colors.map(color => color.replace('#', '')).join('-');
+    const coolorsUrl = `https://coolors.co/${colorCodes}`;
+    window.open(coolorsUrl, '_blank');
   };
 
   return (
@@ -78,7 +143,8 @@ function Suggestions({ suggestions, stats }) {
                     key={colorIdx}
                     className="merge-color-swatch"
                     style={{ backgroundColor: color }}
-                    title={color}
+                    title={`${color} - Click to copy`}
+                    onClick={(e) => copyColorToClipboard(color, e)}
                   />
                 ))}
               </div>
@@ -87,11 +153,28 @@ function Suggestions({ suggestions, stats }) {
                 <div 
                   className="merge-color-swatch"
                   style={{ backgroundColor: merge.suggestedColor }}
-                  title={merge.suggestedColor}
+                  title={`${merge.suggestedColor} - Click to copy`}
+                  onClick={(e) => copyColorToClipboard(merge.suggestedColor, e)}
                 />
-                <span style={{ fontFamily: 'Monaco, Courier New, monospace', fontSize: '0.875rem' }}>
+                <span 
+                  style={{ fontFamily: 'Monaco, Courier New, monospace', fontSize: '0.875rem', cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyColorToClipboard(merge.suggestedColor, e);
+                  }}
+                  title="Click to copy"
+                >
                   {merge.suggestedColor}
                 </span>
+              </div>
+              <div style={{ marginTop: '0.75rem' }}>
+                <button
+                  className="coolors-button"
+                  onClick={() => openInCoolors(merge.colors)}
+                  title="Open palette in Coolors.co"
+                >
+                  🎨 Open in Coolors.co
+                </button>
               </div>
             </div>
           ))}
@@ -149,10 +232,25 @@ function App() {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState({ show: false, message: '' });
+  const [watchMode, setWatchMode] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const dataRef = useRef({ allColors: [], suggestions: {}, stats: null });
+
+  const handleCopy = (text) => {
+    setToast({ show: true, message: `Copied ${text} to clipboard!` });
+  };
 
   useEffect(() => {
-    async function fetchData() {
+    let mounted = true;
+
+    const fetchData = async (silent = false) => {
       try {
+        if (!silent) {
+          setIsUpdating(true);
+        }
+        
         const [colorsRes, suggestionsRes, statsRes] = await Promise.all([
           fetch('/api/colors'),
           fetch('/api/suggestions'),
@@ -167,19 +265,74 @@ function App() {
         const suggestionsData = await suggestionsRes.json();
         const statsData = await statsRes.json();
 
-        setAllColors(colorsData);
-        setColors(colorsData);
-        setSuggestions(suggestionsData);
-        setStats(statsData);
-        setLoading(false);
+        if (!mounted) return;
+
+        // Only update if data actually changed (avoid unnecessary re-renders)
+        const colorsChanged = JSON.stringify(colorsData) !== JSON.stringify(dataRef.current.allColors);
+        const suggestionsChanged = JSON.stringify(suggestionsData) !== JSON.stringify(dataRef.current.suggestions);
+        const statsChanged = JSON.stringify(statsData) !== JSON.stringify(dataRef.current.stats);
+
+        if (colorsChanged || suggestionsChanged || statsChanged || !silent) {
+          dataRef.current = { allColors: colorsData, suggestions: suggestionsData, stats: statsData };
+          setAllColors(colorsData);
+          setColors(colorsData);
+          setSuggestions(suggestionsData);
+          setStats(statsData);
+          if (colorsChanged || suggestionsChanged || statsChanged) {
+            setLastUpdate(new Date());
+          }
+        }
+
+        if (!silent) {
+          setLoading(false);
+        }
       } catch (err) {
-        setError(err.message);
-        setLoading(false);
+        if (!mounted) return;
+        if (!silent) {
+          setError(err.message);
+          setLoading(false);
+        }
+      } finally {
+        if (mounted) {
+          setIsUpdating(false);
+        }
+      }
+    };
+
+    // Check if watch mode is enabled
+    async function checkWatchMode() {
+      try {
+        const res = await fetch('/api/watch-mode');
+        const data = await res.json();
+        if (mounted) {
+          setWatchMode(data.enabled);
+        }
+      } catch (err) {
+        // If endpoint fails, assume watch mode is off
+        if (mounted) {
+          setWatchMode(false);
+        }
       }
     }
 
     fetchData();
-  }, []);
+    checkWatchMode();
+
+    // Poll for updates when watch mode is enabled
+    let pollInterval = null;
+    if (watchMode) {
+      pollInterval = setInterval(() => {
+        fetchData(true); // Silent update
+      }, 3000); // Poll every 3 seconds
+    }
+
+    return () => {
+      mounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [watchMode]);
 
   if (loading) {
     return (
@@ -220,8 +373,19 @@ function App() {
   return (
     <div className="container">
       <div className="header">
-        <h1>Tailwind Color Visualizer</h1>
-        <p>Visualize and analyze arbitrary color values in your Tailwind CSS project</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+          <div>
+            <h1>Tailwind Color Visualizer</h1>
+            <p>Visualize and analyze arbitrary color values in your Tailwind CSS project</p>
+          </div>
+          {watchMode && (
+            <div className="watch-mode-indicator">
+              <span className="watch-mode-dot"></span>
+              <span>Watch Mode</span>
+              {isUpdating && <span className="updating-text">Updating...</span>}
+            </div>
+          )}
+        </div>
         {stats && (
           <div className="stats">
             <div className="stat">
@@ -236,6 +400,14 @@ function App() {
               <div className="stat-label">Files Scanned</div>
               <div className="stat-value">{stats.filesScanned}</div>
             </div>
+            {lastUpdate && (
+              <div className="stat">
+                <div className="stat-label">Last Update</div>
+                <div className="stat-value" style={{ fontSize: '0.875rem' }}>
+                  {lastUpdate.toLocaleTimeString()}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -259,6 +431,7 @@ function App() {
             key={color.id} 
             color={color} 
             onClick={setSelectedColor}
+            onCopy={handleCopy}
           />
         ))}
       </div>
@@ -269,7 +442,13 @@ function App() {
         </div>
       )}
 
-      <Suggestions suggestions={suggestions} stats={stats} />
+      <Suggestions suggestions={suggestions} stats={stats} onCopy={handleCopy} />
+
+      <Toast 
+        message={toast.message} 
+        show={toast.show} 
+        onHide={() => setToast({ show: false, message: '' })} 
+      />
     </div>
   );
 }
