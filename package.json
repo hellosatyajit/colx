@@ -1,6 +1,6 @@
 {
   "name": "colx",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Scan and visualize Tailwind arbitrary color values with CSS variable consolidation suggestions",
   "main": "dist/index.js",
   "bin": {
