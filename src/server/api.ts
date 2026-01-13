@@ -1,8 +1,17 @@
-import { Express, Request, Response } from 'express';
+import { IncomingMessage, ServerResponse } from 'http';
 import { ColorOccurrence } from '../scanner/color-extractor';
 import { ParsedColor, parseColor } from '../analyzer/color-parser';
 import { SimilarColorGroup } from '../analyzer/similarity';
 import { CSSVariableSuggestion } from '../analyzer/consolidator';
+
+// Polka app type - using any for now since types may not be available
+type PolkaApp = any;
+
+// Helper function for JSON responses
+function sendJson(res: ServerResponse, data: any, statusCode: number = 200) {
+  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
 
 export interface ColorData {
   id: string;
@@ -103,17 +112,17 @@ export function setWatchMode(enabled: boolean) {
   watchModeEnabled = enabled;
 }
 
-export function setupApiRoutes(app: Express) {
-  app.get('/api/colors', (_req: Request, res: Response) => {
-    res.json(colorDataCache);
+export function setupApiRoutes(app: PolkaApp) {
+  app.get('/api/colors', (_req: IncomingMessage, res: ServerResponse) => {
+    sendJson(res, colorDataCache);
   });
 
-  app.get('/api/suggestions', (_req: Request, res: Response) => {
-    res.json(suggestionsCache || { cssVariables: [], merges: [] });
+  app.get('/api/suggestions', (_req: IncomingMessage, res: ServerResponse) => {
+    sendJson(res, suggestionsCache || { cssVariables: [], merges: [] });
   });
 
-  app.get('/api/stats', (_req: Request, res: Response) => {
-    res.json(statsCache || {
+  app.get('/api/stats', (_req: IncomingMessage, res: ServerResponse) => {
+    sendJson(res, statsCache || {
       totalOccurrences: 0,
       uniqueColors: 0,
       filesScanned: 0,
@@ -121,7 +130,7 @@ export function setupApiRoutes(app: Express) {
     });
   });
 
-  app.get('/api/watch-mode', (_req: Request, res: Response) => {
-    res.json({ enabled: watchModeEnabled });
+  app.get('/api/watch-mode', (_req: IncomingMessage, res: ServerResponse) => {
+    sendJson(res, { enabled: watchModeEnabled });
   });
 }
